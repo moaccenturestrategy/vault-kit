@@ -59,12 +59,29 @@ if ! grep -q "aufhebenswerte Artefakte" "$GLOBAL" 2>/dev/null; then
   echo "✓ Vault-Zeiger in $GLOBAL ergänzt"
 else echo "• Vault-Zeiger schon vorhanden — übersprungen"; fi
 
-# 7) zsh-Launcher (idempotent per Marker)
+# 7) zsh-Launcher — Block zwischen Markern EINFÜGEN oder bei Re-Lauf ERSETZEN
+#    (so zieht `git pull && ./install.sh` auch Wrapper-Updates durch)
 ZRC="$HOME/.zshrc"; touch "$ZRC"
-if ! grep -q "vault-kit: Claude-Code-Launcher" "$ZRC" 2>/dev/null; then
-  { echo; cat "$KIT/templates/zshrc-functions.sh"; } >> "$ZRC"; subst "$ZRC"
-  echo "✓ zsh-Launcher in $ZRC ergänzt (neues Terminal oder: source ~/.zshrc)"
-else echo "• zsh-Launcher schon vorhanden — übersprungen"; fi
+TMP_LAUNCH="$(mktemp)"; cp "$KIT/templates/zshrc-functions.sh" "$TMP_LAUNCH"; subst "$TMP_LAUNCH"
+ZRC="$ZRC" BLOCK="$TMP_LAUNCH" python3 - <<'PY'
+import os, pathlib
+zrc = pathlib.Path(os.environ["ZRC"])
+block = pathlib.Path(os.environ["BLOCK"]).read_text(encoding="utf-8").strip("\n")
+t = zrc.read_text(encoding="utf-8") if zrc.exists() else ""
+start = "# === vault-kit: Claude-Code-Launcher"
+end = "# === /vault-kit ==="
+if start in t and end in t:
+    pre = t[:t.index(start)]
+    post = t[t.index(end) + len(end):]
+    t = pre.rstrip("\n") + "\n" + block + "\n" + post.lstrip("\n")
+    action = "aktualisiert"
+else:
+    t = (t.rstrip("\n") + "\n\n" if t.strip() else "") + block + "\n"
+    action = "ergänzt"
+zrc.write_text(t, encoding="utf-8")
+print(f"✓ zsh-Launcher {action} in {zrc} (neues Terminal oder: source ~/.zshrc)")
+PY
+rm -f "$TMP_LAUNCH"
 
 # 8) Graphify (optional)
 if [ "$NO_GRAPHIFY" -eq 0 ]; then
