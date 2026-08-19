@@ -1,0 +1,5 @@
+_Index/
+graphify-out/
+graph.viewer.html
+*.backup-*
+.DS_Store

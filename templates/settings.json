@@ -1,0 +1,36 @@
+{
+  "autoMemoryEnabled": true,
+  "permissions": {
+    "ask": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(git push:*)",
+      "WebFetch",
+      "Bash(rm:*)"
+    ],
+    "deny": [
+      "Read(./**/.env)",
+      "Read(~/.ssh/**)"
+    ]
+  },
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/tools/vault-index.py __VAULT__ > ~/.claude/tools/last-index.log 2>&1 || true",
+            "timeout": 60,
+            "statusMessage": "Index-Graph wird aufgefrischt…"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/tools/memory-hygiene.py __MEMDIR__ || true",
+            "timeout": 15,
+            "statusMessage": "Memory-Hygiene wird geprüft…"
+          }
+        ]
+      }
+    ]
+  }
+}
