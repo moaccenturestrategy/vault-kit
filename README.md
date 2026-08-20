@@ -82,7 +82,7 @@ Danach: **neues Terminal → `claude`** (öffnet im Vault) und für den Feinschl
 Das System hält sich weitgehend selbst aktuell:
 - **SessionEnd-Hooks** (`<vault>/.claude/settings.json`): bauen den **Index-Graph** neu und prüfen die **Memory-Hygiene** — bei jedem Sitzungsende, ohne Zutun.
 - **Graphify-Selbstheilung** (`graphify()` in `~/.zshrc`): Ein Graphify-Update überschreibt die `SKILL.md` und würde unsere **Vault-Hausregeln** (Zwei-Ebenen-/Lokal-only-Regeln) entfernen. Der Wrapper erkennt das **nach jedem `graphify`-Aufruf** (fehlender Marker) und **setzt die Hausregeln automatisch neu** — egal ob durch `graphify install`, ein Upgrade oder eine Neuinstallation. Nach `graphify update` baut er zusätzlich den eigenen Betrachter neu. Kanonische Quelle der Regeln: `~/.claude/tools/graphify-vault-houserules.md`.
-- **`install.sh` bei erneutem Lauf**: ersetzt den zsh-Launcher-Block zwischen seinen Markern (Updates greifen wirklich) und rendert `CLAUDE.md`/`settings.json` neu.
+- **`install.sh` bei erneutem Lauf**: aktualisiert Tools/Skills und ersetzt den zsh-Launcher-Block zwischen seinen Markern (Updates greifen wirklich), lässt aber eine **bereits vorhandene** `CLAUDE.md`/`settings.json` unangetastet — dein Projekt-Routing und lokale Einstellungen bleiben erhalten.
 
 ## Updaten
 ```bash

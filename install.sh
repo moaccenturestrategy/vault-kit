@@ -45,9 +45,17 @@ cp -R "$KIT/skills/"* "$VAULT/.claude/skills/"
 cp "$KIT/agents/"*.md "$VAULT/.claude/agents/"
 cp "$KIT/commands/"*.md "$VAULT/.claude/commands/"
 
-# 4) Templates rendern
-cp "$KIT/templates/vault-CLAUDE.md" "$VAULT/CLAUDE.md";            subst "$VAULT/CLAUDE.md"
-cp "$KIT/templates/settings.json"   "$VAULT/.claude/settings.json"; subst "$VAULT/.claude/settings.json"
+# 4) Templates rendern — bestehende NIE überschreiben (gefüllter Vault bleibt unangetastet)
+if [ -f "$VAULT/CLAUDE.md" ]; then
+  echo "• $VAULT/CLAUDE.md existiert — unverändert gelassen (deine Projekt-Routing-Tabelle bleibt)"
+else
+  cp "$KIT/templates/vault-CLAUDE.md" "$VAULT/CLAUDE.md"; subst "$VAULT/CLAUDE.md"; echo "✓ CLAUDE.md angelegt"
+fi
+if [ -f "$VAULT/.claude/settings.json" ]; then
+  echo "• $VAULT/.claude/settings.json existiert — unverändert gelassen"
+else
+  cp "$KIT/templates/settings.json" "$VAULT/.claude/settings.json"; subst "$VAULT/.claude/settings.json"; echo "✓ settings.json angelegt"
+fi
 
 # 5) Platzhalter in kopierten Assets ersetzen
 while IFS= read -r f; do subst "$f"; done < <(find "$VAULT/.claude/skills" "$VAULT/.claude/commands" "$VAULT/.claude/agents" -name '*.md'; echo "$HOME/.claude/tools/graphify-vault-houserules.md")
