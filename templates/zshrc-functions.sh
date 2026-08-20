@@ -17,14 +17,20 @@ claude() {
   fi
 }
 
-# graphify: nach `install` die Vault-Hausregeln wieder einsetzen; nach `update`
-# den eigenen Betrachter (graph.viewer.html) mitbauen.
+# graphify: hält unsere Anpassungen bei JEDEM Graphify-Update in Sync.
+#  - Selbstheilung: fehlt der Vault-Hausregel-Block in der (evtl. gerade
+#    überschriebenen) SKILL.md, wird er nach dem Befehl automatisch neu eingesetzt
+#    — egal ob durch `graphify install`, ein Upgrade oder eine Neuinstallation.
+#  - nach `update`: baut den eigenen Betrachter (graph.viewer.html) gleich mit.
 graphify() {
   command graphify "$@"
   local rc=$?
-  if [[ "$1" == "install" ]]; then
-    python3 "$HOME/.claude/tools/graphify-reapply-houserules.py" 2>/dev/null
-  elif [[ "$1" == "update" ]]; then
+  local skill="$HOME/.claude/skills/graphify/SKILL.md"
+  if [[ -f "$skill" ]] && ! grep -q "VAULT-HAUSREGELN" "$skill" 2>/dev/null; then
+    python3 "$HOME/.claude/tools/graphify-reapply-houserules.py" 2>/dev/null \
+      && echo "↳ Vault-Hausregeln nach Graphify-Update wieder eingesetzt"
+  fi
+  if [[ "$1" == "update" ]]; then
     local tgt="${2:-.}"; [[ "$tgt" == -* ]] && tgt="."
     python3 "$HOME/.claude/tools/graph-viewer.py" "$tgt" >/dev/null 2>&1 \
       && echo "↳ eigener Betrachter aktualisiert (graph.viewer.html)"

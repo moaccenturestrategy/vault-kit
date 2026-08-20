@@ -45,9 +45,17 @@ cp -R "$KIT/skills/"* "$VAULT/.claude/skills/"
 cp "$KIT/agents/"*.md "$VAULT/.claude/agents/"
 cp "$KIT/commands/"*.md "$VAULT/.claude/commands/"
 
-# 4) Templates rendern
-cp "$KIT/templates/vault-CLAUDE.md" "$VAULT/CLAUDE.md";            subst "$VAULT/CLAUDE.md"
-cp "$KIT/templates/settings.json"   "$VAULT/.claude/settings.json"; subst "$VAULT/.claude/settings.json"
+# 4) Templates rendern — bestehende NIE überschreiben (gefüllter Vault bleibt unangetastet)
+if [ -f "$VAULT/CLAUDE.md" ]; then
+  echo "• $VAULT/CLAUDE.md existiert — unverändert gelassen (deine Projekt-Routing-Tabelle bleibt)"
+else
+  cp "$KIT/templates/vault-CLAUDE.md" "$VAULT/CLAUDE.md"; subst "$VAULT/CLAUDE.md"; echo "✓ CLAUDE.md angelegt"
+fi
+if [ -f "$VAULT/.claude/settings.json" ]; then
+  echo "• $VAULT/.claude/settings.json existiert — unverändert gelassen"
+else
+  cp "$KIT/templates/settings.json" "$VAULT/.claude/settings.json"; subst "$VAULT/.claude/settings.json"; echo "✓ settings.json angelegt"
+fi
 
 # 5) Platzhalter in kopierten Assets ersetzen
 while IFS= read -r f; do subst "$f"; done < <(find "$VAULT/.claude/skills" "$VAULT/.claude/commands" "$VAULT/.claude/agents" -name '*.md'; echo "$HOME/.claude/tools/graphify-vault-houserules.md")
@@ -59,12 +67,29 @@ if ! grep -q "aufhebenswerte Artefakte" "$GLOBAL" 2>/dev/null; then
   echo "✓ Vault-Zeiger in $GLOBAL ergänzt"
 else echo "• Vault-Zeiger schon vorhanden — übersprungen"; fi
 
-# 7) zsh-Launcher (idempotent per Marker)
+# 7) zsh-Launcher — Block zwischen Markern EINFÜGEN oder bei Re-Lauf ERSETZEN
+#    (so zieht `git pull && ./install.sh` auch Wrapper-Updates durch)
 ZRC="$HOME/.zshrc"; touch "$ZRC"
-if ! grep -q "vault-kit: Claude-Code-Launcher" "$ZRC" 2>/dev/null; then
-  { echo; cat "$KIT/templates/zshrc-functions.sh"; } >> "$ZRC"; subst "$ZRC"
-  echo "✓ zsh-Launcher in $ZRC ergänzt (neues Terminal oder: source ~/.zshrc)"
-else echo "• zsh-Launcher schon vorhanden — übersprungen"; fi
+TMP_LAUNCH="$(mktemp)"; cp "$KIT/templates/zshrc-functions.sh" "$TMP_LAUNCH"; subst "$TMP_LAUNCH"
+ZRC="$ZRC" BLOCK="$TMP_LAUNCH" python3 - <<'PY'
+import os, pathlib
+zrc = pathlib.Path(os.environ["ZRC"])
+block = pathlib.Path(os.environ["BLOCK"]).read_text(encoding="utf-8").strip("\n")
+t = zrc.read_text(encoding="utf-8") if zrc.exists() else ""
+start = "# === vault-kit: Claude-Code-Launcher"
+end = "# === /vault-kit ==="
+if start in t and end in t:
+    pre = t[:t.index(start)]
+    post = t[t.index(end) + len(end):]
+    t = pre.rstrip("\n") + "\n" + block + "\n" + post.lstrip("\n")
+    action = "aktualisiert"
+else:
+    t = (t.rstrip("\n") + "\n\n" if t.strip() else "") + block + "\n"
+    action = "ergänzt"
+zrc.write_text(t, encoding="utf-8")
+print(f"✓ zsh-Launcher {action} in {zrc} (neues Terminal oder: source ~/.zshrc)")
+PY
+rm -f "$TMP_LAUNCH"
 
 # 8) Graphify (optional)
 if [ "$NO_GRAPHIFY" -eq 0 ]; then
